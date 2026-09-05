@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "历史记录",
+  "description": "以更直观的时间线和网站分组方式查看、搜索与管理 Chrome 历史记录。",
+  "version": "0.6.2",
+  "minimum_chrome_version": "115",
+  "permissions": ["history", "favicon"],
+  "icons": {
+    "16": "icons/history-16.png",
+    "32": "icons/history-32.png",
+    "48": "icons/history-48.png",
+    "128": "icons/history-128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "打开历史记录",
+    "default_icon": {
+      "16": "icons/history-16.png",
+      "32": "icons/history-32.png"
+    }
+  },
+  "chrome_url_overrides": {
+    "history": "history.html"
+  }
+}

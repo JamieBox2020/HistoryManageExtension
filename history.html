@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>历史记录</title>
+    <link rel="icon" href="icons/history-32.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="history-app">
+      <main class="history-main">
+        <section class="history-toolbar" aria-label="历史记录筛选">
+          <label class="search-field" for="searchInput">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+            <input id="searchInput" type="search" placeholder="搜索记录" autocomplete="off" autofocus />
+          </label>
+
+          <div class="history-toolbar__filters">
+            <div id="rangePicker" class="date-filter">
+              <span class="date-filter__label">时间</span>
+              <button id="rangeTrigger" class="date-filter__trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                <span id="rangeLabel">今天</span>
+                <svg class="date-filter__chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"></path></svg>
+              </button>
+              <div id="rangeMenu" class="date-filter__menu" role="listbox" aria-label="查询时间范围" hidden>
+                <button class="date-filter__option is-selected" type="button" role="option" aria-selected="true" data-range="today">今天</button>
+                <button class="date-filter__option" type="button" role="option" aria-selected="false" data-range="3">最近 3 天</button>
+                <button class="date-filter__option" type="button" role="option" aria-selected="false" data-range="7">最近 7 天</button>
+                <button class="date-filter__option" type="button" role="option" aria-selected="false" data-range="30">最近 30 天</button>
+                <button class="date-filter__option" type="button" role="option" aria-selected="false" data-range="90">最近 90 天</button>
+                <button class="date-filter__option" type="button" role="option" aria-selected="false" data-range="all">全部时间</button>
+              </div>
+            </div>
+
+            <div class="view-switch" role="group" aria-label="历史记录展示方式">
+              <button class="view-switch__button is-active" type="button" aria-pressed="true" data-view="timeline">按时间</button>
+              <button class="view-switch__button" type="button" aria-pressed="false" data-view="domain">按域名</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="history-panel" aria-label="历史记录列表">
+          <div class="selection-bar">
+            <label class="selection-bar__control">
+              <input id="selectAllCheckbox" class="selection-bar__checkbox" type="checkbox" />
+              <span class="selection-bar__text">
+                <span id="selectionLabel" class="selection-bar__label">全选当前结果</span>
+              </span>
+            </label>
+            <button id="deleteSelectedButton" class="selection-bar__action" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"></path></svg>
+              <span>删除所选</span>
+            </button>
+          </div>
+
+          <div id="historyGroups" class="history-groups"></div>
+        </section>
+
+        <p class="history-footnote">历史数据来自 Chrome，扩展不会上传或共享这些内容。最多展示当前查询最近的 5000 个页面。</p>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <script type="module" src="history.js"></script>
+  </body>
+</html>
