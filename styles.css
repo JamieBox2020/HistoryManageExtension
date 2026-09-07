@@ -509,6 +509,10 @@ svg {
   white-space: nowrap;
 }
 
+.history-row__url-difference {
+  color: var(--primary);
+}
+
 .history-row__actions {
   display: flex;
   align-items: center;

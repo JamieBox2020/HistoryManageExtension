@@ -255,12 +255,104 @@ function renderHistory() {
 function createHistoryTimeline(items) {
   const timeline = document.createElement('div')
   timeline.className = 'history-timeline'
-
-  items.forEach(function (item) {
-    timeline.append(createHistoryRow(item))
-  })
+  timeline.append(createHistoryRows(items))
 
   return timeline
+}
+
+function createHistoryRows(items) {
+  const rows = document.createDocumentFragment()
+  const urlDifferences = getAdjacentTitleUrlDifferences(items)
+
+  items.forEach(function (item) {
+    rows.append(createHistoryRow(item, urlDifferences.get(item)))
+  })
+
+  return rows
+}
+
+// 仅比较连续且同标题的记录，避免跨记录匹配造成误导
+function getAdjacentTitleUrlDifferences(items) {
+  const differences = new Map()
+  let groupStart = 0
+
+  while (groupStart < items.length) {
+    const title = items[groupStart].title
+    let groupEnd = groupStart + 1
+
+    while (groupEnd < items.length && title && items[groupEnd].title === title) {
+      groupEnd += 1
+    }
+
+    if (title && groupEnd - groupStart > 1) {
+      setUrlDifferences(items, groupStart, groupEnd, differences)
+    }
+
+    groupStart = groupEnd
+  }
+
+  return differences
+}
+
+function setUrlDifferences(items, groupStart, groupEnd, differences) {
+  const displayUrls = items.slice(groupStart, groupEnd).map(function (item) {
+    return formatUrlForDisplay(item.url)
+  })
+  const prefixLength = getCommonPrefixLength(displayUrls)
+  const suffixLength = getCommonSuffixLength(displayUrls, prefixLength)
+
+  displayUrls.forEach(function (displayUrl, index) {
+    const differenceEnd = displayUrl.length - suffixLength
+
+    if (differenceEnd > prefixLength) {
+      differences.set(items[groupStart + index], {
+        start: prefixLength,
+        end: differenceEnd
+      })
+    }
+  })
+}
+
+function getCommonPrefixLength(values) {
+  let prefixLength = 0
+
+  while (prefixLength < values[0].length) {
+    const character = values[0][prefixLength]
+    const isCommon = values.every(function (value) {
+      return value[prefixLength] === character
+    })
+
+    if (isCommon) {
+      prefixLength += 1
+    } else {
+      break
+    }
+  }
+
+  return prefixLength
+}
+
+function getCommonSuffixLength(values, prefixLength) {
+  const shortestLength = Math.min(...values.map(function (value) {
+    return value.length
+  }))
+  const availableLength = shortestLength - prefixLength
+  let suffixLength = 0
+
+  while (suffixLength < availableLength) {
+    const character = values[0][values[0].length - suffixLength - 1]
+    const isCommon = values.every(function (value) {
+      return value[value.length - suffixLength - 1] === character
+    })
+
+    if (isCommon) {
+      suffixLength += 1
+    } else {
+      break
+    }
+  }
+
+  return suffixLength
 }
 
 function groupItemsByDomain(items) {
@@ -324,9 +416,7 @@ function createHistoryGroup(group) {
   rows.className = 'history-group__rows'
   rows.hidden = isExpanded === false
 
-  group.items.forEach(function (item) {
-    rows.append(createHistoryRow(item))
-  })
+  rows.append(createHistoryRows(group.items))
 
   header.append(identity, summary)
   section.append(header, rows)
@@ -343,7 +433,7 @@ function toggleDomainGroup(domain) {
   renderHistory()
 }
 
-function createHistoryRow(item) {
+function createHistoryRow(item, urlDifference) {
   const row = document.createElement('article')
   row.className = 'history-row'
 
@@ -378,8 +468,8 @@ function createHistoryRow(item) {
   const url = document.createElement('div')
   const displayUrl = formatUrlForDisplay(item.url)
   url.className = 'history-row__url'
-  url.textContent = displayUrl
   url.title = displayUrl
+  appendUrlContent(url, displayUrl, urlDifference)
   main.append(title, url)
 
   const actions = document.createElement('div')
@@ -390,6 +480,17 @@ function createHistoryRow(item) {
 
   row.append(checkbox, time, favicon, main, actions)
   return row
+}
+
+function appendUrlContent(element, displayUrl, difference) {
+  if (difference) {
+    const highlightedText = document.createElement('span')
+    highlightedText.className = 'history-row__url-difference'
+    highlightedText.textContent = displayUrl.slice(difference.start, difference.end)
+    element.append(document.createTextNode(displayUrl.slice(0, difference.start)), highlightedText, document.createTextNode(displayUrl.slice(difference.end)))
+  } else {
+    element.textContent = displayUrl
+  }
 }
 
 function createFavicon(item) {
