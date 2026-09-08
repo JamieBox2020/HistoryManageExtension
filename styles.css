@@ -435,7 +435,7 @@ svg {
 
 .history-row {
   display: grid;
-  grid-template-columns: 20px 100px 26px minmax(240px, 1fr) 28px;
+  grid-template-columns: 20px 120px 26px minmax(240px, 1fr) 28px;
   align-items: center;
   gap: 8px;
   min-height: 46px;
@@ -458,6 +458,7 @@ svg {
   color: var(--text-faint);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .history-row__favicon {

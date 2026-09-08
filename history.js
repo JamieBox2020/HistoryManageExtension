@@ -1,6 +1,7 @@
 const MAX_RESULTS = 5000
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000
 const RANGE_STORAGE_KEY = 'historyRange'
+const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
 const state = {
   items: [],
@@ -753,7 +754,8 @@ function formatTime(timestamp) {
   const hour = formatTimePart(date.getHours())
   const minute = formatTimePart(date.getMinutes())
   const second = formatTimePart(date.getSeconds())
-  return `${month}-${day} ${hour}:${minute}:${second}`
+  const weekday = WEEKDAY_LABELS[date.getDay()]
+  return `${month}-${day} ${hour}:${minute}:${second} ${weekday}`
 }
 
 function formatTimePart(value) {
