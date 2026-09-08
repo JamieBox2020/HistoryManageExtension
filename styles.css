@@ -553,6 +553,15 @@ svg {
   text-align: center;
 }
 
+.history-count {
+  position: fixed;
+  z-index: 50;
+  right: 24px;
+  bottom: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
 .back-to-top {
   position: fixed;
   z-index: 60;

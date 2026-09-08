@@ -19,6 +19,7 @@ const state = {
 const elements = {
   backToTopButton: document.querySelector('#backToTopButton'),
   deleteSelectedButton: document.querySelector('#deleteSelectedButton'),
+  historyCount: document.querySelector('#historyCount'),
   historyGroups: document.querySelector('#historyGroups'),
   rangeLabel: document.querySelector('#rangeLabel'),
   rangeMenu: document.querySelector('#rangeMenu'),
@@ -76,8 +77,16 @@ function updateBackToTopButton() {
 }
 
 function scrollToTop() {
+  scrollToPagePosition(0)
+}
+
+function scrollToBottom() {
+  scrollToPagePosition(document.documentElement.scrollHeight)
+}
+
+function scrollToPagePosition(top) {
   const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
-  window.scrollTo({ top: 0, left: 0, behavior })
+  window.scrollTo({ top, left: 0, behavior })
 }
 
 function handleRangePickerClick(event) {
@@ -159,6 +168,16 @@ function handleKeyboardShortcut(event) {
   if (event.key === '/' && document.activeElement !== elements.searchInput) {
     event.preventDefault()
     elements.searchInput.focus()
+  }
+
+  if (event.key === 'Home') {
+    event.preventDefault()
+    scrollToTop()
+  }
+
+  if (event.key === 'End') {
+    event.preventDefault()
+    scrollToBottom()
   }
 
   if (event.key === 'Escape') {
@@ -272,6 +291,7 @@ function renderAll() {
 
 function renderHistory() {
   const items = getVisibleItems()
+  elements.historyCount.textContent = `共 ${items.length} 条记录`
   elements.historyGroups.replaceChildren()
 
   if (items.length > 0) {
