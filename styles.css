@@ -511,6 +511,10 @@ svg {
 }
 
 .history-row__url-difference {
+  color: #EE7A2F;
+}
+
+.history-row__search-match {
   color: var(--primary);
 }
 

@@ -4,6 +4,7 @@ const RANGE_STORAGE_KEY = 'historyRange'
 
 const state = {
   items: [],
+  rangeItems: [],
   selectedUrls: new Set(),
   expandedDomains: new Set(),
   query: '',
@@ -67,7 +68,7 @@ function bindEvents() {
 function handleSearchInput(event) {
   window.clearTimeout(state.searchTimer)
   state.query = event.target.value.trim()
-  state.searchTimer = window.setTimeout(loadHistory, 280)
+  state.searchTimer = window.setTimeout(applyHistorySearch, 280)
 }
 
 function updateBackToTopButton() {
@@ -94,6 +95,7 @@ function toggleRangeMenu(event) {
 
 function changeRange(range, label) {
   if (range) {
+    window.clearTimeout(state.searchTimer)
     updateRange(range, label)
     state.selectedUrls.clear()
     window.localStorage.setItem(RANGE_STORAGE_KEY, range)
@@ -185,21 +187,20 @@ async function loadHistory() {
 
   try {
     const items = await chrome.history.search({
-      text: state.query,
+      text: '',
       startTime: getRangeStartTime(),
       endTime: Date.now(),
       maxResults: MAX_RESULTS
     })
 
     if (requestId === state.requestId) {
-      state.items = items.filter(function (item) {
+      state.rangeItems = items.filter(function (item) {
         return Boolean(item.url)
       }).sort(function (firstItem, secondItem) {
         return (secondItem.lastVisitTime || 0) - (firstItem.lastVisitTime || 0)
       })
 
-      removeUnavailableSelections()
-      renderAll()
+      applyHistorySearch()
     }
   } catch (error) {
     if (requestId === state.requestId) {
@@ -207,6 +208,23 @@ async function loadHistory() {
       showToast(`读取历史记录失败：${error.message}`)
     }
   }
+}
+
+function applyHistorySearch() {
+  const normalizedQuery = state.query.toLowerCase()
+
+  if (normalizedQuery) {
+    state.items = state.rangeItems.filter(function (item) {
+      const title = (item.title || item.url).toLowerCase()
+      const displayUrl = formatUrlForDisplay(item.url).toLowerCase()
+      return title.includes(normalizedQuery) || displayUrl.includes(normalizedQuery)
+    })
+  } else {
+    state.items = state.rangeItems
+  }
+
+  removeUnavailableSelections()
+  renderAll()
 }
 
 function scheduleHistoryReload() {
@@ -475,11 +493,12 @@ function createHistoryRow(item, urlDifference) {
   const main = document.createElement('div')
   main.className = 'history-row__main'
 
+  const titleText = item.title || item.url
   const title = document.createElement('button')
   title.className = 'history-row__title'
   title.type = 'button'
-  title.textContent = item.title || item.url
-  title.title = item.title || item.url
+  title.title = titleText
+  appendHighlightedText(title, titleText)
   title.addEventListener('click', function () {
     openHistoryUrl(item.url)
   })
@@ -494,7 +513,7 @@ function createHistoryRow(item, urlDifference) {
   const displayUrl = formatUrlForDisplay(item.url)
   url.className = 'history-row__url'
   url.title = displayUrl
-  appendUrlContent(url, displayUrl, urlDifference)
+  appendHighlightedText(url, displayUrl, urlDifference)
   main.append(title, url)
 
   const actions = document.createElement('div')
@@ -507,15 +526,58 @@ function createHistoryRow(item, urlDifference) {
   return row
 }
 
-function appendUrlContent(element, displayUrl, difference) {
+function appendHighlightedText(element, text, difference) {
+  const searchMatches = getSearchMatches(text)
+  const boundaries = [0, text.length]
+
+  searchMatches.forEach(function (match) {
+    boundaries.push(match.start, match.end)
+  })
+
   if (difference) {
-    const highlightedText = document.createElement('span')
-    highlightedText.className = 'history-row__url-difference'
-    highlightedText.textContent = displayUrl.slice(difference.start, difference.end)
-    element.append(document.createTextNode(displayUrl.slice(0, difference.start)), highlightedText, document.createTextNode(displayUrl.slice(difference.end)))
-  } else {
-    element.textContent = displayUrl
+    boundaries.push(difference.start, difference.end)
   }
+
+  const sortedBoundaries = Array.from(new Set(boundaries)).sort(function (firstBoundary, secondBoundary) {
+    return firstBoundary - secondBoundary
+  })
+
+  for (let index = 0; index < sortedBoundaries.length - 1; index += 1) {
+    const start = sortedBoundaries[index]
+    const end = sortedBoundaries[index + 1]
+    const content = text.slice(start, end)
+    const isSearchMatch = searchMatches.some(function (match) {
+      return start >= match.start && end <= match.end
+    })
+    const isUrlDifference = difference && start >= difference.start && end <= difference.end
+
+    if (isSearchMatch || isUrlDifference) {
+      const highlightedText = document.createElement('span')
+      highlightedText.className = isSearchMatch ? 'history-row__search-match' : 'history-row__url-difference'
+      highlightedText.textContent = content
+      element.append(highlightedText)
+    } else {
+      element.append(document.createTextNode(content))
+    }
+  }
+}
+
+function getSearchMatches(text) {
+  const matches = []
+  const normalizedText = text.toLowerCase()
+  const normalizedQuery = state.query.toLowerCase()
+
+  if (normalizedQuery) {
+    let matchStart = normalizedText.indexOf(normalizedQuery)
+
+    while (matchStart !== -1) {
+      const matchEnd = matchStart + normalizedQuery.length
+      matches.push({ start: matchStart, end: matchEnd })
+      matchStart = normalizedText.indexOf(normalizedQuery, matchEnd)
+    }
+  }
+
+  return matches
 }
 
 function createFavicon(item) {
