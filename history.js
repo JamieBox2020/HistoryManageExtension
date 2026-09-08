@@ -16,6 +16,7 @@ const state = {
 }
 
 const elements = {
+  backToTopButton: document.querySelector('#backToTopButton'),
   deleteSelectedButton: document.querySelector('#deleteSelectedButton'),
   historyGroups: document.querySelector('#historyGroups'),
   rangeLabel: document.querySelector('#rangeLabel'),
@@ -33,16 +34,19 @@ const elements = {
 function initialize() {
   restoreRange()
   bindEvents()
+  updateBackToTopButton()
   loadHistory()
 }
 
 function bindEvents() {
+  elements.backToTopButton.addEventListener('click', scrollToTop)
   elements.searchInput.addEventListener('input', handleSearchInput)
-  elements.rangeTrigger.addEventListener('click', toggleRangeMenu)
+  elements.rangePicker.addEventListener('click', handleRangePickerClick)
   elements.selectAllCheckbox.addEventListener('change', toggleSelectAll)
   elements.deleteSelectedButton.addEventListener('click', deleteSelectedItems)
   document.addEventListener('click', handleDocumentClick)
   document.addEventListener('keydown', handleKeyboardShortcut)
+  window.addEventListener('scroll', updateBackToTopButton, { passive: true })
 
   elements.rangeOptions.forEach(function (option) {
     option.addEventListener('click', function () {
@@ -64,6 +68,21 @@ function handleSearchInput(event) {
   window.clearTimeout(state.searchTimer)
   state.query = event.target.value.trim()
   state.searchTimer = window.setTimeout(loadHistory, 280)
+}
+
+function updateBackToTopButton() {
+  elements.backToTopButton.hidden = window.scrollY < 300
+}
+
+function scrollToTop() {
+  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+  window.scrollTo({ top: 0, left: 0, behavior })
+}
+
+function handleRangePickerClick(event) {
+  if (event.target.closest('.date-filter__menu') === null) {
+    toggleRangeMenu(event)
+  }
 }
 
 function toggleRangeMenu(event) {
@@ -463,6 +482,12 @@ function createHistoryRow(item, urlDifference) {
   title.title = item.title || item.url
   title.addEventListener('click', function () {
     openHistoryUrl(item.url)
+  })
+  title.addEventListener('mousedown', function (event) {
+    if (event.button === 1) {
+      event.preventDefault()
+      openHistoryUrl(item.url)
+    }
   })
 
   const url = document.createElement('div')

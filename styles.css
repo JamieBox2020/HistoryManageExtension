@@ -129,6 +129,7 @@ svg {
   border-radius: 18px;
   background: var(--surface);
   color: var(--text-soft);
+  cursor: pointer;
   font-size: 12px;
 }
 
@@ -546,6 +547,33 @@ svg {
   color: var(--text-faint);
   font-size: 10px;
   text-align: center;
+}
+
+.back-to-top {
+  position: fixed;
+  z-index: 60;
+  right: 24px;
+  bottom: 72px;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-soft);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.back-to-top:hover {
+  background: var(--surface-hover);
+  color: var(--primary);
+}
+
+.back-to-top[hidden] {
+  display: none;
 }
 
 .toast {
