@@ -89,7 +89,6 @@ svg {
 .search-field:focus-within {
   border-color: var(--primary);
   background: var(--surface);
-  box-shadow: 0 0 0 2px #1a73e829;
 }
 
 .search-field svg {
