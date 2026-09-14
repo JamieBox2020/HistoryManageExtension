@@ -526,7 +526,7 @@ function createHistoryRow(item, urlDifference) {
   title.addEventListener('mousedown', function (event) {
     if (event.button === 1) {
       event.preventDefault()
-      openHistoryUrl(item.url)
+      openHistoryUrl(item.url, true)
     }
   })
 
@@ -723,13 +723,17 @@ async function deleteSelectedItems() {
   }
 }
 
-function openHistoryUrl(url) {
+function openHistoryUrl(url, openInNewTab = false) {
   try {
     const parsedUrl = new URL(url)
     const allowedProtocols = ['http:', 'https:', 'ftp:', 'file:']
 
     if (allowedProtocols.includes(parsedUrl.protocol)) {
-      chrome.tabs.create({ url })
+      if (openInNewTab) {
+        chrome.tabs.create({ url })
+      } else {
+        window.location.assign(url)
+      }
     } else {
       showToast('Chrome 不允许扩展打开这个内部地址')
     }
