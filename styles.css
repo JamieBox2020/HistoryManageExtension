@@ -434,7 +434,7 @@ svg {
 
 .history-row {
   display: grid;
-  grid-template-columns: 20px 120px 26px minmax(240px, 1fr) 28px;
+  grid-template-columns: 20px 120px 26px minmax(240px, 1fr) 56px;
   align-items: center;
   gap: 8px;
   min-height: 46px;
@@ -546,6 +546,10 @@ svg {
   color: var(--danger);
 }
 
+.row-action--danger:hover path {
+  fill: var(--danger);
+}
+
 .history-footnote {
   margin: 10px 4px 0;
   color: var(--text-faint);
@@ -651,7 +655,7 @@ svg {
   }
 
   .history-row {
-    grid-template-columns: 20px 26px minmax(0, 1fr) 28px;
+    grid-template-columns: 20px 26px minmax(0, 1fr) 56px;
     gap: 7px;
     padding: 6px 10px;
   }

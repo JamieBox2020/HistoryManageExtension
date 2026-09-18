@@ -539,9 +539,14 @@ function createHistoryRow(item, urlDifference) {
 
   const actions = document.createElement('div')
   actions.className = 'history-row__actions'
-  actions.append(createRowAction('删除该网址的全部历史', createTrashIcon(), function () {
-    deleteSingleItem(item)
-  }, true))
+  actions.append(
+    createRowAction('复制完整网址', createCopyIcon(), function () {
+      copyHistoryUrl(item.url)
+    }),
+    createRowAction('删除该网址的全部历史', createTrashIcon(), function () {
+      deleteSingleItem(item)
+    }, true)
+  )
 
   row.append(checkbox, time, favicon, main, actions)
   return row
@@ -634,7 +639,11 @@ function createRowAction(label, icon, handler, isDanger = false) {
 }
 
 function createTrashIcon() {
-  return createSvgIcon('<path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"></path>')
+  return createSvgIcon('<path fill="#5f6368" stroke="none" d="M7 4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2h4a1 1 0 1 1 0 2h-1.069l-.867 12.142A2 2 0 0 1 17.069 22H6.93a2 2 0 0 1-1.995-1.858L4.07 8H3a1 1 0 0 1 0-2h4zm2 2h6V4H9zM6.074 8l.857 12H17.07l.857-12zM10 10a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1m4 0a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1"></path>')
+}
+
+function createCopyIcon() {
+  return createSvgIcon('<g fill="none" stroke="#5f6368" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M14.556 13.218a2.67 2.67 0 0 1-3.774-3.774l2.359-2.36a2.67 2.67 0 0 1 3.628-.135m-.325-3.167a2.669 2.669 0 1 1 3.774 3.774l-2.359 2.36a2.67 2.67 0 0 1-3.628.135"></path><path d="M10.5 3c-3.287 0-4.931 0-6.037.908a4 4 0 0 0-.555.554C3 5.57 3 7.212 3 10.5V13c0 3.771 0 5.657 1.172 6.828S7.229 21 11 21h2.5c3.287 0 4.931 0 6.038-.908q.304-.25.554-.554C21 18.43 21 16.788 21 13.5"></path></g>')
 }
 
 function createSvgIcon(content) {
@@ -696,6 +705,15 @@ async function deleteSingleItem(item) {
     } catch (error) {
       showToast(`删除失败：${error.message}`)
     }
+  }
+}
+
+async function copyHistoryUrl(url) {
+  try {
+    await navigator.clipboard.writeText(url)
+    showToast('完整网址已复制')
+  } catch (error) {
+    showToast(`复制失败：${error.message}`)
   }
 }
 
