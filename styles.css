@@ -9,6 +9,7 @@
   --text-faint: #80868b;
   --line: #e3e6eb;
   --primary: #1a73e8;
+  --primary-soft: #e8f0fe;
   --danger: #c5221f;
   --danger-soft: #fce8e6;
   --shadow: 0 1px 6px #3c404329;
@@ -538,7 +539,11 @@ svg {
 }
 
 .row-action:hover {
-  background: #eeeeee;
+  background: var(--primary-soft);
+}
+
+.row-action:hover g {
+  stroke: var(--primary);
 }
 
 .row-action--danger:hover {
