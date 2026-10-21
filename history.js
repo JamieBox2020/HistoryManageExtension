@@ -1,5 +1,7 @@
 const MAX_RESULTS = 5000
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000
+// 最近时间统一以页面打开时刻为基准
+const PAGE_OPEN_TIME = Date.now()
 const RANGE_STORAGE_KEY = 'historyRange'
 const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
@@ -509,6 +511,16 @@ function createHistoryRow(item, urlDifference) {
   time.dateTime = new Date(item.lastVisitTime || 0).toISOString()
   time.textContent = formatTime(item.lastVisitTime)
 
+  const recentTimeText = formatRecentTime(item.lastVisitTime)
+
+  if (recentTimeText) {
+    const recentTime = document.createElement('span')
+    recentTime.className = 'history-row__recent-time'
+    recentTime.title = '最近时间'
+    recentTime.textContent = recentTimeText
+    time.append(recentTime)
+  }
+
   const favicon = createFavicon(item)
 
   const main = document.createElement('div')
@@ -767,6 +779,26 @@ function showToast(message) {
   state.toastTimer = window.setTimeout(function () {
     elements.toast.hidden = true
   }, 3200)
+}
+
+// 仅展示页面打开时当天且不超过 12 小时的记录，满一小时后省略秒数
+function formatRecentTime(timestamp) {
+  const todayStart = new Date(PAGE_OPEN_TIME)
+  todayStart.setHours(0, 0, 0, 0)
+  const elapsedMilliseconds = PAGE_OPEN_TIME - timestamp
+
+  if (timestamp >= todayStart.getTime() && elapsedMilliseconds >= 0 && elapsedMilliseconds <= DAY_IN_MILLISECONDS / 2) {
+    const totalSeconds = Math.floor(elapsedMilliseconds / 1000)
+    const totalMinutes = Math.floor(totalSeconds / 60)
+
+    if (totalMinutes < 60) {
+      return `${totalMinutes}分${totalSeconds % 60}秒前`
+    } else {
+      return `${Math.floor(totalMinutes / 60)}时${totalMinutes % 60}分前`
+    }
+  } else {
+    return ''
+  }
 }
 
 function formatTime(timestamp) {

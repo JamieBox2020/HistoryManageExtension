@@ -461,6 +461,13 @@ svg {
   white-space: nowrap;
 }
 
+.history-row__recent-time {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 15px;
+}
+
 .history-row__favicon {
   display: grid;
   width: 26px;
