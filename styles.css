@@ -112,6 +112,14 @@ svg {
   color: var(--text-soft);
 }
 
+.search-field input::-webkit-search-cancel-button {
+  width: 18px;
+  height: 18px;
+  -webkit-appearance: none;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="128" height="128"><path fill="%235f6368" d="M6.4 19L5 17.6l5.6-5.6L5 6.4L6.4 5l5.6 5.6L17.6 5L19 6.4L13.4 12l5.6 5.6l-1.4 1.4l-5.6-5.6z"/></svg>') center / contain no-repeat;
+  cursor: pointer;
+}
+
 .history-toolbar__filters {
   display: flex;
   flex: 0 0 auto;

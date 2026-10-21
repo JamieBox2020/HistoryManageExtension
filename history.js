@@ -65,7 +65,7 @@ function bindEvents() {
     })
   })
 
-  chrome.history.onVisited.addListener(scheduleHistoryReload)
+  // 新访问保留当前列表快照，仅在删除历史时自动刷新
   chrome.history.onVisitRemoved.addListener(scheduleHistoryReload)
 }
 
@@ -760,7 +760,7 @@ function openHistoryUrl(url, openInNewTab = false) {
 
     if (allowedProtocols.includes(parsedUrl.protocol)) {
       if (openInNewTab) {
-        chrome.tabs.create({ url })
+        chrome.tabs.create({ url, active: false })
       } else {
         window.location.assign(url)
       }
