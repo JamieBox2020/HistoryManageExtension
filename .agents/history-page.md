@@ -27,6 +27,7 @@
 
 ## 特别强调的写法
 
+- 搜索框提示为“搜索历史记录”，通过 `history.html` 的原生 `autofocus` 在打开页面时自动聚焦；聚焦时保持浅灰背景，不添加蓝色边框或切换白底，避免与页面背景混在一起，见 `styles.css` 的 `.search-field`
 - 最近时间与上方日期保持同一灰色，继承 `.history-row__time` 的颜色；字号稍小并留出上方间距，避免削弱右侧历史条目的视觉重点，见 `styles.css` 的 `.history-row__recent-time`
-- 保持接近 Chrome 原生历史页的紧凑浅色样式；顶部工具栏保持普通文档流，URL 在标题下单行省略，通过 `title` 查看完整解码地址，不恢复已移除的头部、统计板块和额外操作入口，见 `history.html`、`styles.css`
+- 保持接近 Chrome 原生历史页的紧凑浅色样式；搜索栏和记录列表共用 `styles.css` 的 `.history-main` 控制整体宽度；顶部工具栏保持普通文档流，URL 在标题下单行省略，通过 `title` 查看完整解码地址，不恢复已移除的头部、统计板块和额外操作入口，见 `history.html`、`styles.css`
 - 扩展菜单及记录操作按钮的悬浮背景与图标高亮应成对设计：普通操作使用浅蓝背景和深蓝图标，危险操作使用浅红背景和深红图标，见 `styles.css`、`history.js`

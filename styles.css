@@ -61,7 +61,7 @@ svg {
 }
 
 .history-main {
-  width: min(960px, calc(100% - 40px));
+  width: min(1000px, calc(100% - 40px));
   margin: 0 auto;
   padding: 12px 0 24px;
 }
@@ -85,11 +85,6 @@ svg {
   background: #eef1f7;
   color: var(--text-soft);
   transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
-}
-
-.search-field:focus-within {
-  border-color: var(--primary);
-  background: var(--surface);
 }
 
 .search-field svg {
