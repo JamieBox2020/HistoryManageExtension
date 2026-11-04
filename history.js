@@ -8,12 +8,17 @@ const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周�
 const state = {
   items: [],
   rangeItems: [],
+  searchSections: [],
+  rangeStartTime: 0,
+  rangeEndTime: 0,
   selectedUrls: new Set(),
   expandedDomains: new Set(),
   query: '',
   range: 'today',
   view: 'timeline',
   requestId: 0,
+  searchRequestId: 0,
+  isLoadingHistory: false,
   reloadTimer: undefined,
   searchTimer: undefined,
   toastTimer: undefined
@@ -71,6 +76,7 @@ function bindEvents() {
 
 function handleSearchInput(event) {
   window.clearTimeout(state.searchTimer)
+  state.searchRequestId += 1
   state.query = event.target.value.trim()
   state.searchTimer = window.setTimeout(applyHistorySearch, 280)
 }
@@ -188,58 +194,71 @@ function handleKeyboardShortcut(event) {
   }
 }
 
-function getRangeStartTime() {
-  const now = new Date()
+function getRangeStartTime(range = state.range, endTime = Date.now()) {
+  const now = new Date(endTime)
 
-  if (state.range === 'today') {
+  if (range === 'today') {
     now.setHours(0, 0, 0, 0)
     return now.getTime()
   }
 
-  if (state.range === 'all') {
+  if (range === 'all') {
     return 0
   }
 
-  return Date.now() - Number(state.range) * DAY_IN_MILLISECONDS
+  return endTime - Number(range) * DAY_IN_MILLISECONDS
 }
 
 async function loadHistory() {
   const requestId = state.requestId + 1
   state.requestId = requestId
+  state.searchRequestId += 1
+  state.isLoadingHistory = true
+  const endTime = Date.now()
+  const startTime = getRangeStartTime(state.range, endTime)
 
   try {
     const items = await chrome.history.search({
       text: '',
-      startTime: getRangeStartTime(),
-      endTime: Date.now(),
+      startTime,
+      endTime,
       maxResults: MAX_RESULTS
     })
 
     if (requestId === state.requestId) {
+      state.isLoadingHistory = false
+      state.rangeStartTime = startTime
+      state.rangeEndTime = endTime
       state.rangeItems = items.filter(function (item) {
         return Boolean(item.url)
       }).sort(function (firstItem, secondItem) {
         return (secondItem.lastVisitTime || 0) - (firstItem.lastVisitTime || 0)
       })
 
-      applyHistorySearch()
+      await applyHistorySearch()
     }
   } catch (error) {
     if (requestId === state.requestId) {
+      state.isLoadingHistory = false
       console.error(error)
       showToast(`读取历史记录失败：${error.message}`)
     }
   }
 }
 
-function applyHistorySearch() {
+async function applyHistorySearch() {
+  if (state.isLoadingHistory) {
+    return
+  }
+
+  const requestId = state.searchRequestId + 1
+  state.searchRequestId = requestId
   const normalizedQuery = state.query.toLowerCase()
+  state.searchSections = []
 
   if (normalizedQuery) {
     state.items = state.rangeItems.filter(function (item) {
-      const title = (item.title || item.url).toLowerCase()
-      const displayUrl = formatUrlForDisplay(item.url).toLowerCase()
-      return title.includes(normalizedQuery) || displayUrl.includes(normalizedQuery)
+      return matchesHistoryQuery(item, normalizedQuery)
     })
   } else {
     state.items = state.rangeItems
@@ -247,6 +266,73 @@ function applyHistorySearch() {
 
   removeUnavailableSelections()
   renderAll()
+
+  if (normalizedQuery && state.range !== 'all') {
+    await searchEarlierHistory(requestId, state.query)
+  }
+}
+
+function matchesHistoryQuery(item, normalizedQuery) {
+  const title = (item.title || item.url).toLowerCase()
+  const displayUrl = formatUrlForDisplay(item.url).toLowerCase()
+  return title.includes(normalizedQuery) || displayUrl.includes(normalizedQuery)
+}
+
+// 时间窗口互不重叠，旧查询只补充更早的网址，避免重复出现在多个分段
+async function searchEarlierHistory(requestId, query) {
+  const ranges = Array.from(elements.rangeOptions)
+  const currentRangeIndex = ranges.findIndex(function (option) {
+    return option.dataset.range === state.range
+  })
+  let endTime = state.rangeStartTime
+  const seenUrls = new Set(state.items.map(function (item) {
+    return item.url
+  }))
+
+  for (const option of ranges.slice(currentRangeIndex + 1)) {
+    if (requestId !== state.searchRequestId || state.items.length >= MAX_RESULTS) {
+      return
+    }
+
+    const startTime = getRangeStartTime(option.dataset.range, state.rangeEndTime)
+
+    try {
+      const results = await chrome.history.search({
+        text: query,
+        startTime,
+        endTime,
+        maxResults: MAX_RESULTS - state.items.length
+      })
+
+      if (requestId !== state.searchRequestId) {
+        return
+      }
+
+      const items = results.filter(function (item) {
+        if (item.url && item.lastVisitTime >= startTime && item.lastVisitTime < endTime && seenUrls.has(item.url) === false && matchesHistoryQuery(item, query.toLowerCase())) {
+          seenUrls.add(item.url)
+          return true
+        } else {
+          return false
+        }
+      }).sort(function (firstItem, secondItem) {
+        return secondItem.lastVisitTime - firstItem.lastVisitTime
+      })
+
+      if (items.length > 0) {
+        state.searchSections.push({ label: option.textContent, items })
+        state.items.push(...items)
+        renderAll()
+      }
+    } catch (error) {
+      if (requestId === state.searchRequestId) {
+        showToast(`读取更早的搜索结果失败：${error.message}`)
+      }
+      return
+    }
+
+    endTime = startTime
+  }
 }
 
 function scheduleHistoryReload() {
@@ -298,18 +384,33 @@ function renderHistory() {
   elements.historyGroups.replaceChildren()
 
   if (items.length > 0) {
-    if (state.view === 'timeline') {
-      elements.historyGroups.append(createHistoryTimeline(items))
-    } else {
-      const groups = groupItemsByDomain(items)
+    const earlierItemCount = state.searchSections.reduce(function (count, section) {
+      return count + section.items.length
+    }, 0)
+    appendHistoryItems(items.slice(0, items.length - earlierItemCount))
 
-      groups.forEach(function (group) {
-        elements.historyGroups.append(createHistoryGroup(group))
-      })
-    }
+    state.searchSections.forEach(function (section) {
+      const divider = document.createElement('div')
+      divider.className = 'history-search__divider'
+      divider.textContent = section.label
+      elements.historyGroups.append(divider)
+      appendHistoryItems(section.items)
+    })
   }
 
   renderSelectionState()
+}
+
+function appendHistoryItems(items) {
+  if (state.view === 'timeline') {
+    elements.historyGroups.append(createHistoryTimeline(items))
+  } else {
+    const groups = groupItemsByDomain(items)
+
+    groups.forEach(function (group) {
+      elements.historyGroups.append(createHistoryGroup(group))
+    })
+  }
 }
 
 function createHistoryTimeline(items) {
