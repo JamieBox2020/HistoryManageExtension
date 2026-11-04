@@ -363,7 +363,7 @@ function getDomain(url) {
 
 function formatUrlForDisplay(url) {
   try {
-    return decodeURI(url)
+    return decodeURIComponent(url)
   } catch {
     return url
   }
