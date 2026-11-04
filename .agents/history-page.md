@@ -9,6 +9,7 @@
 ## 公共能力与复用
 
 - 时间视图和域名视图共用 `createHistoryRows`、`createHistoryRow`，新增行内展示或交互应在此接入；域名按 hostname 分组，进入域名视图会清空展开状态，见 `history.js`
+- `appendHistoryItems` 统一渲染一个时间分段，内部复用时间列表或域名分组；`renderHistory` 先显示当前范围结果，再逐段插入 `.history-search__divider` 和补充记录，两种视图均保留分段，见 `history.js`、`styles.css`
 - `formatUrlForDisplay` 解码展示 URL；打开、复制、选择和删除始终使用原始 URL。`createFavicon`、`getFaviconUrl` 使用扩展 `/_favicon/`，不请求外部图标服务，见 `history.js`
 - `appendHighlightedText` 统一处理搜索命中与 URL 差异。`getAdjacentTitleUrlDifferences` 只比较当前列表中连续且同标题的记录，以解码后 URL 的共同前后缀确定差异；无独有字符不制造空高亮，搜索蓝色优先于差异橙色，见 `history.js`、`styles.css`
 - `createRowAction` 统一创建行内按钮，现有顺序为复制、删除；反馈复用 `showToast`，见 `history.js`
@@ -17,7 +18,10 @@
 
 - `loadHistory` 调用 `chrome.history.search`，最多读取 5000 个有效 URL，按 `lastVisitTime` 倒序排列；每项表示一个网址的最后访问情况，并非每次访问的独立记录。`requestId` 避免旧请求覆盖新结果，见 `history.js`
 - 列表保留当前查询快照：不监听 `onVisited`，再次访问网址不会使原记录移到顶部，也不会新增顶部记录，便于连续中键打开。页面初始化、切换日期范围及删除操作会重新查询；外部删除通过 `onVisitRemoved` 防抖刷新。因此删除也可能带入最新访问数据，见 `history.js` 的 `bindEvents`、`scheduleHistoryReload`
-- 搜索只过滤已读取的 `state.rangeItems`，匹配标题和解码 URL，不区分大小写且不重新请求；切换视图也只重新渲染，见 `history.js` 的 `applyHistorySearch`、`changeView`
+- 搜索先通过 `applyHistorySearch` 过滤当前范围快照 `state.rangeItems`，再由 `searchEarlierHistory` 按 `history.html` 中 `[data-range]` 的菜单顺序依次查询更早范围；例如选 7 天时继续查询 30 天、90 天和全部时间。更早查询使用关键词作为 API 的 `text`，再复用 `matchesHistoryQuery` 校验标题或解码 URL 的大小写无关子串匹配；切换视图只重新渲染，见 `history.js`
+- 补充查询以已加载快照的 `rangeEndTime` 计算边界，每段仅接受 `startTime <= lastVisitTime < endTime`，下一段的上界为上一段下界，并按原始 URL 去重；空分段不显示但继续向前查询，失败则保留已加载结果并提示。当前与补充结果总计最多 5000 项，见 `history.js` 的 `loadHistory`、`searchEarlierHistory`
+- `state.items` 是当前范围命中项与补充项依次拼接的总列表，计数、选择和删除均使用此列表；`searchSections` 只保存补充分段，`renderHistory` 依其条数从总列表分离当前范围部分。清空关键词会清空补充分段并恢复 `rangeItems`，不会把补充结果写入范围快照，见 `history.js`
+- `requestId` 保护范围加载，`searchRequestId` 保护补充搜索；输入事件在防抖前立即使旧搜索失效，重新加载范围也使旧搜索失效。`isLoadingHistory` 阻止范围加载期间用旧快照启动搜索，加载成功后再应用最新关键词，见 `history.js` 的 `handleSearchInput`、`loadHistory`、`applyHistorySearch`
 - 日期范围默认 `today`，从本地零点开始；数字范围为最近 N 个 24 小时，`all` 从时间戳 0 开始。`historyRange` 使用同源 `localStorage` 保存，初始化先恢复再查询；不依赖 `chrome.storage`，见 `history.js`
 - 标题保持 `button`；左键通过 `window.location.assign` 在当前页打开，中键 `mousedown` 使用 `chrome.tabs.create({ url, active: false })` 在后台标签页打开，历史页保持选中。只允许 `http:`、`https:`、`ftp:`、`file:`，见 `history.js` 的 `createHistoryRow`、`openHistoryUrl`
 - 选择以 URL 为键；`chrome.history.deleteUrl` 删除该 URL 的全部访问记录，单条删除和批量删除均需确认。复制通过 `navigator.clipboard.writeText` 写入原始完整 URL，见 `history.js`
@@ -27,6 +31,7 @@
 
 ## 特别强调的写法
 
+- 搜索分割线直接复用对应时间菜单的 `option.textContent`，例如“最近 30 天”“最近 90 天”“全部时间”；不要拼接“某范围内 · 某范围之前”等说明，也不要改成区间文案。文案虽与累计范围菜单一致，分段数据仍仅补充尚未展示的更早记录，见 `history.js` 的 `searchEarlierHistory`、`history.html`
 - 搜索框提示为“搜索历史记录”，通过 `history.html` 的原生 `autofocus` 在打开页面时自动聚焦；聚焦时保持浅灰背景，不添加蓝色边框或切换白底，避免与页面背景混在一起，见 `styles.css` 的 `.search-field`
 - 最近时间与上方日期保持同一灰色，继承 `.history-row__time` 的颜色；字号稍小并留出上方间距，避免削弱右侧历史条目的视觉重点，见 `styles.css` 的 `.history-row__recent-time`
 - 保持接近 Chrome 原生历史页的紧凑浅色样式；搜索栏和记录列表共用 `styles.css` 的 `.history-main` 控制整体宽度；顶部工具栏保持普通文档流，URL 在标题下单行省略，通过 `title` 查看完整解码地址，不恢复已移除的头部、统计板块和额外操作入口，见 `history.html`、`styles.css`
