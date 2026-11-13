@@ -10,12 +10,13 @@
 
 - 时间视图和域名视图共用 `createHistoryRows`、`createHistoryRow`，新增行内展示或交互应在此接入；域名按 hostname 分组，进入域名视图会清空展开状态，见 `history.js`
 - `appendHistoryItems` 统一渲染一个时间分段，内部复用时间列表或域名分组；`renderHistory` 先显示当前范围结果，再逐段插入 `.history-search__divider` 和补充记录，两种视图均保留分段，见 `history.js`、`styles.css`
-- `formatUrlForDisplay` 解码展示 URL；打开、复制、选择和删除始终使用原始 URL。`createFavicon`、`getFaviconUrl` 使用扩展 `/_favicon/`，不请求外部图标服务，见 `history.js`
+- `formatUrlForDisplay` 统一提供列表文本、完整地址悬浮提示、`matchesHistoryQuery` 搜索匹配及 `setUrlDifferences` 差异比较所用的解码 URL；打开、复制、选择和删除始终使用原始 URL。`createFavicon`、`getFaviconUrl` 使用扩展 `/_favicon/`，不请求外部图标服务，见 `history.js`
 - `appendHighlightedText` 统一处理搜索命中与 URL 差异。`getAdjacentTitleUrlDifferences` 只比较当前列表中连续且同标题的记录，以解码后 URL 的共同前后缀确定差异；无独有字符不制造空高亮，搜索蓝色优先于差异橙色，见 `history.js`、`styles.css`
 - `createRowAction` 统一创建行内按钮，现有顺序为复制、删除；反馈复用 `showToast`，见 `history.js`
 
 ## 关键约定
 
+- `formatUrlForDisplay` 使用 `decodeURIComponent` 对整个 URL 解码一次，既还原 UTF-8 中文，也还原 `encodeURIComponent` 编码的 JSON 参数中的冒号、逗号等符号；不要改回会保留 `%3A`、`%2C` 的 `decodeURI`。解码异常时返回原始 URL，不递归解码或解析 JWT，见 `history.js`
 - `loadHistory` 调用 `chrome.history.search`，最多读取 5000 个有效 URL，按 `lastVisitTime` 倒序排列；每项表示一个网址的最后访问情况，并非每次访问的独立记录。`requestId` 避免旧请求覆盖新结果，见 `history.js`
 - 列表保留当前查询快照：不监听 `onVisited`，再次访问网址不会使原记录移到顶部，也不会新增顶部记录，便于连续中键打开。页面初始化、切换日期范围及删除操作会重新查询；外部删除通过 `onVisitRemoved` 防抖刷新。因此删除也可能带入最新访问数据，见 `history.js` 的 `bindEvents`、`scheduleHistoryReload`
 - 搜索先通过 `applyHistorySearch` 过滤当前范围快照 `state.rangeItems`，再由 `searchEarlierHistory` 按 `history.html` 中 `[data-range]` 的菜单顺序依次查询更早范围；例如选 7 天时继续查询 30 天、90 天和全部时间。更早查询使用关键词作为 API 的 `text`，再复用 `matchesHistoryQuery` 校验标题或解码 URL 的大小写无关子串匹配；切换视图只重新渲染，见 `history.js`
